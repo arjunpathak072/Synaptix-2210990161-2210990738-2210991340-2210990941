@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Synaptix — Explorer</title>
   <script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.1/dist/svg-pan-zoom.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -20,10 +21,22 @@
 
     /* Left panel — diagram */
     .diagram-panel { width: 50%; border-right: 1px solid #1e2235; display: flex; flex-direction: column; background: #0e1018; }
-    .diagram-panel h2 { padding: 10px 20px; font-size: 11px; font-weight: 600; color: #5a5f72; text-transform: uppercase; letter-spacing: 1.2px; border-bottom: 1px solid #1e2235; background: #12141e; }
-    .diagram-scroll { flex: 1; overflow: auto; padding: 20px; display: flex; align-items: center; justify-content: center; }
-    .diagram-scroll .mermaid { width: 100%; min-height: 100%; display: flex; align-items: center; justify-content: center; }
-    .diagram-scroll svg { width: 100% !important; height: auto !important; max-height: 100%; }
+    .diagram-panel h2 { padding: 10px 20px; font-size: 11px; font-weight: 600; color: #5a5f72; text-transform: uppercase; letter-spacing: 1.2px; border-bottom: 1px solid #1e2235; background: #12141e; display: flex; justify-content: space-between; align-items: center; }
+    .diagram-toolbar { display: flex; gap: 6px; }
+    .diagram-toolbar button { background: #1a1e2e; border: 1px solid #2a2d3a; color: #c9cdd6; width: 28px; height: 24px; border-radius: 6px; cursor: pointer; font-size: 14px; line-height: 1; padding: 0; font-family: inherit; transition: background 0.15s, border-color 0.15s; }
+    .diagram-toolbar button:hover { background: #242838; border-color: #4a7dff; color: #e8ecf4; }
+    #diagramViewport { flex: 1; overflow: hidden; position: relative; background: #0e1018; cursor: grab; touch-action: none; overscroll-behavior: contain; }
+    #diagramViewport.grabbing { cursor: grabbing; }
+    #diagramViewport svg { width: 100%; height: 100%; display: block; cursor: inherit; }
+    #diagramViewport g.node { cursor: pointer; }
+    #diagramViewport g.node:hover rect, #diagramViewport g.node:hover polygon { stroke: #7eb8ff; stroke-width: 2px; filter: brightness(1.15); }
+    #diagramHint { position: absolute; bottom: 10px; left: 14px; font-size: 11px; color: #4a5066; letter-spacing: 0.3px; pointer-events: none; user-select: none; }
+
+    /* Highlighting */
+    .node.dim, .node.dim * { opacity: 0.18 !important; transition: opacity 0.15s; }
+    .edgePath.dim path { opacity: 0.08 !important; transition: opacity 0.15s; }
+    .edgePath.highlight path { stroke: #4a7dff !important; stroke-width: 2.2px !important; opacity: 1 !important; }
+    .node.selected rect, .node.selected polygon { stroke: #4a7dff !important; stroke-width: 2.5px !important; }
 
     /* Right panel — chat */
     .chat-panel { width: 50%; display: flex; flex-direction: column; background: #0e1018; }
@@ -56,11 +69,13 @@
     .chat-input button:active { transform: translateY(0); }
     .chat-input button:disabled { opacity: 0.4; cursor: not-allowed; transform: none; box-shadow: none; }
 
-    /* Mermaid dark theme overrides */
-    .diagram-scroll .node rect, .diagram-scroll .node polygon { fill: #1e2030 !important; stroke: #4a7dff !important; rx: 8px !important; ry: 8px !important; }
-    .diagram-scroll .nodeLabel { color: #e0e0e0 !important; font-size: 14px !important; font-weight: 600 !important; }
-    .diagram-scroll .edgePath path { stroke: #555 !important; }
-    .diagram-scroll .edgeLabel { color: #aaa !important; }
+    /* Mermaid dark theme overrides (node text + edges only — let classDef fill show through) */
+    #diagramViewport .nodeLabel { color: #e0e0e0 !important; font-size: 13px !important; font-weight: 500 !important; }
+    #diagramViewport .node rect, #diagramViewport .node polygon { stroke: #4a7dff; rx: 6px; ry: 6px; }
+    #diagramViewport .node:not(.dim) rect:not([fill]), #diagramViewport .node:not(.dim) polygon:not([fill]) { fill: #1e2030; }
+    #diagramViewport .edgePath path { stroke: #3a3d4a; stroke-width: 1.2px; }
+    #diagramViewport .cluster rect { fill: rgba(30, 34, 53, 0.25) !important; stroke: #2a2d3a !important; }
+    #diagramViewport .cluster-label .nodeLabel { color: #7a8296 !important; font-size: 11px !important; text-transform: uppercase; letter-spacing: 1px; }
 
     .resize-handle { width: 5px; cursor: col-resize; background: #1e2235; transition: background 0.2s; }
     .resize-handle:hover { background: #4a7dff; }
@@ -80,10 +95,18 @@
 
   <div class="container">
     <div class="diagram-panel" id="diagramPanel">
-      <h2>Dependency Graph</h2>
-      <div class="diagram-scroll">
-        <pre class="mermaid">{{ mermaid_code }}</pre>
+      <h2>
+        Dependency Graph
+        <span class="diagram-toolbar">
+          <button id="zoomIn" title="Zoom in">+</button>
+          <button id="zoomOut" title="Zoom out">−</button>
+          <button id="zoomReset" title="Reset view">⤾</button>
+        </span>
+      </h2>
+      <div id="diagramViewport">
+        <div id="diagramHint">scroll / pinch to zoom · drag to pan · click a node to highlight</div>
       </div>
+      <pre id="mermaidSource" style="display:none">{{ mermaid_code }}</pre>
     </div>
 
     <div class="resize-handle" id="resizeHandle"></div>
@@ -99,11 +122,130 @@
   </div>
 
   <script>
-    mermaid.initialize({ startOnLoad: true, theme: 'dark', securityLevel: 'loose', flowchart: { padding: 20, nodeSpacing: 30, rankSpacing: 50 } });
+    mermaid.initialize({ startOnLoad: false, theme: 'dark', securityLevel: 'loose', flowchart: { padding: 20, nodeSpacing: 40, rankSpacing: 70, curve: 'basis', htmlLabels: true } });
+
+    let panZoom = null;
+
+    async function renderDiagram() {
+      const source = document.getElementById('mermaidSource').textContent;
+      const viewport = document.getElementById('diagramViewport');
+      try {
+        const { svg } = await mermaid.render('mermaidSvg', source);
+        viewport.insertAdjacentHTML('afterbegin', svg);
+        const svgEl = viewport.querySelector('svg');
+        svgEl.setAttribute('width', '100%');
+        svgEl.setAttribute('height', '100%');
+        svgEl.removeAttribute('style');
+
+        panZoom = svgPanZoom(svgEl, {
+          zoomEnabled: true,
+          controlIconsEnabled: false,
+          mouseWheelZoomEnabled: true,    // use library's built-in wheel handler
+          preventMouseEventsDefault: true,// it will preventDefault for us
+          fit: true,
+          center: true,
+          minZoom: 0.3,
+          maxZoom: 10,
+          zoomScaleSensitivity: 0.3,
+          dblClickZoomEnabled: false,
+        });
+
+        // Safari-specific pinch gestures (non-standard, but widely supported on macOS)
+        let gestureStartZoom = 1;
+        viewport.addEventListener('gesturestart', (ev) => {
+          ev.preventDefault();
+          gestureStartZoom = panZoom ? panZoom.getZoom() : 1;
+        }, { passive: false });
+        viewport.addEventListener('gesturechange', (ev) => {
+          ev.preventDefault();
+          if (!panZoom) return;
+          const rect = svgEl.getBoundingClientRect();
+          const target = gestureStartZoom * ev.scale;
+          const ratio = target / panZoom.getZoom();
+          panZoom.zoomAtPoint(ratio, {
+            x: ev.clientX - rect.left,
+            y: ev.clientY - rect.top,
+          });
+        }, { passive: false });
+        viewport.addEventListener('gestureend', (ev) => ev.preventDefault(), { passive: false });
+
+        // Cursor state while panning
+        viewport.addEventListener('mousedown', (ev) => {
+          if (ev.target.closest('g.node')) return; // node clicks handled separately
+          viewport.classList.add('grabbing');
+        });
+        window.addEventListener('mouseup', () => viewport.classList.remove('grabbing'));
+
+        wireHighlight(svgEl);
+      } catch (e) {
+        viewport.insertAdjacentHTML('afterbegin', '<pre style="color:#c77; padding:20px">Diagram render failed: ' + e.message + '</pre>');
+      }
+    }
+
+    function extractNid(el) {
+      const m = (el.id || '').match(/-(n\d+)-/) || (el.id || '').match(/^(n\d+)$/);
+      return m ? m[1] : null;
+    }
+
+    function wireHighlight(svg) {
+      const nodes = svg.querySelectorAll('g.node');
+      const edges = svg.querySelectorAll('g.edgePath');
+
+      function clear() {
+        nodes.forEach(n => { n.classList.remove('dim'); n.classList.remove('selected'); });
+        edges.forEach(e => { e.classList.remove('dim'); e.classList.remove('highlight'); });
+      }
+
+      nodes.forEach(node => {
+        node.addEventListener('click', ev => {
+          ev.stopPropagation();
+          const nid = extractNid(node);
+          if (!nid) return;
+
+          clear();
+          node.classList.add('selected');
+          nodes.forEach(n => { if (n !== node) n.classList.add('dim'); });
+
+          edges.forEach(e => {
+            const eid = e.id || '';
+            const match = eid.match(/L[_-](n\d+)[_-](n\d+)/);
+            if (match && (match[1] === nid || match[2] === nid)) {
+              e.classList.add('highlight');
+              const otherId = match[1] === nid ? match[2] : match[1];
+              nodes.forEach(n => {
+                if (extractNid(n) === otherId) n.classList.remove('dim');
+              });
+            } else {
+              e.classList.add('dim');
+            }
+          });
+        });
+      });
+
+      svg.addEventListener('click', clear);
+    }
+
+    document.getElementById('zoomIn').addEventListener('click', () => panZoom && panZoom.zoomIn());
+    document.getElementById('zoomOut').addEventListener('click', () => panZoom && panZoom.zoomOut());
+    document.getElementById('zoomReset').addEventListener('click', () => { if (panZoom) { panZoom.resetZoom(); panZoom.center(); panZoom.fit(); } });
+
+    renderDiagram();
 
     const messagesEl = document.getElementById('messages');
     const inputEl = document.getElementById('chatInput');
     const sendBtn = document.getElementById('sendBtn');
+
+    // Auto-scroll only when user is already at (or near) the bottom.
+    // This lets them scroll up during streaming without being yanked back.
+    const SCROLL_THRESHOLD = 40; // px from bottom considered "at bottom"
+    function isAtBottom() {
+      return messagesEl.scrollHeight - messagesEl.scrollTop - messagesEl.clientHeight < SCROLL_THRESHOLD;
+    }
+    let stickToBottom = true;
+    messagesEl.addEventListener('scroll', () => { stickToBottom = isAtBottom(); });
+    function maybeScroll(force = false) {
+      if (force || stickToBottom) messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
 
     inputEl.addEventListener('keydown', e => { if (e.key === 'Enter' && !sendBtn.disabled) sendMessage(); });
 
@@ -112,6 +254,7 @@
       if (!text) return;
       inputEl.value = '';
 
+      stickToBottom = true;  // new user message: resume auto-scroll
       appendMsg('user', text);
       sendBtn.disabled = true;
 
@@ -146,7 +289,7 @@
               if (!assistantDiv) assistantDiv = appendMsg('assistant', '');
               fullResponse += data.content;
               assistantDiv.innerHTML = marked.parse(fullResponse);
-              messagesEl.scrollTop = messagesEl.scrollHeight;
+              maybeScroll();
             } else if (data.type === 'error') {
               appendMsg('assistant', 'Error: ' + data.content);
             }
@@ -165,7 +308,7 @@
       div.className = 'msg ' + role;
       div.innerHTML = role === 'user' ? text : marked.parse(text);
       messagesEl.appendChild(div);
-      messagesEl.scrollTop = messagesEl.scrollHeight;
+      maybeScroll(role === 'user');  // force-scroll for the user's own new message
       return div;
     }
 

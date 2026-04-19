@@ -1,5 +1,6 @@
 """CLI interface for Synaptix."""
 
+import logging
 from pathlib import Path
 
 import click
@@ -26,8 +27,14 @@ from app.graph import build_graph
     default=False,
     help="Launch Synaptix Explorer web UI (diagram + chat)",
 )
-def main(path: str, chat: bool, web: bool) -> None:
+@click.option("-v", "--verbose", is_flag=True, default=False, help="Verbose logging")
+def main(path: str, chat: bool, web: bool, verbose: bool) -> None:
     """Synaptix - Build a Mental Map of any Python repository."""
+    logging.basicConfig(
+        level=logging.DEBUG if verbose else logging.INFO,
+        format="%(asctime)s  %(name)s  %(message)s",
+        datefmt="%H:%M:%S",
+    )
     repo_path = str(Path(path).resolve())
 
     db_path = Path(repo_path) / ".synaptix_db"

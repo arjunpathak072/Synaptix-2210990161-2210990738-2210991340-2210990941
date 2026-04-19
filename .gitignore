@@ -21,3 +21,5 @@ synaptix_output.md
 .ruff_cache
 
 venv
+# Local reference only
+CHANGES.md

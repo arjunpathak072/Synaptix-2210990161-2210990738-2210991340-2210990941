@@ -18,11 +18,12 @@ EXCLUDE_DIRS: set[str] = {
     ".eggs",
     "dist",
     "build",
+    "tests",
 }
 ENTRY_FILENAMES: set[str] = {"main.py", "__main__.py", "app.py", "manage.py"}
 
 
-def discover(state: SynaptixState) -> dict[str, list[str]]:
+def discover(state: SynaptixState) -> dict:
     """Scan the repository for .py files and detect entry points."""
     repo_path = Path(state["repo_path"])
     discovered: list[str] = []
