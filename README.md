@@ -78,3 +78,25 @@ python -m app --path /path/to/python/repo --chat
 # Analyze and launch web UI
 python -m app --path /path/to/python/repo --web
 ```
+
+## Future Roadmap
+
+Planned enhancements to evolve **Synaptix** into a professional-grade architectural intelligence tool:
+
+### 1. Multi-Language Support
+Extend Tree-sitter integration beyond Python to support **TypeScript, Go, and Rust**, enabling architectural mapping of polyglot microservice environments.
+
+### 2. Incremental Indexing (Git-Aware)
+Implement delta-updates via Git-hook integration to re-index only modified files, significantly reducing compute overhead for large-scale enterprise repositories.
+
+### 3. Graph-Walk RAG
+Evolution of the retrieval system to traverse the **Mermaid-defined relationships**. Instead of basic vector similarity, the agent will "walk the graph" to retrieve callers, callees, and dependencies for deeper context.
+
+### 4. IDE Integration (VS Code / JetBrains)
+Packaging the Web UI and interactive chat as a native IDE extension, allowing developers to visualize the codebase "Mental Map" directly alongside their source code.
+
+### 5. Autonomous Refactoring Agents
+Leveraging the structural map to propose and execute refactoring tasks, such as decoupling highly entangled modules or automatically generating unit test stubs based on function signatures.
+
+### 6. CI/CD Architectural Guardrails
+Headless CLI mode for GitHub Actions/GitLab CI to automatically detect and flag circular dependencies or architectural pattern violations during the Pull Request process.
