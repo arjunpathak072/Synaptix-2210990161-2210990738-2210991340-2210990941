@@ -19,6 +19,7 @@ synaptix_output.md
 
 .ropeproject
 .ruff_cache
+.kiro
 
 venv
 # Local reference only
